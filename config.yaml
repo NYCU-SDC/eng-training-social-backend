@@ -1,0 +1,5 @@
+debug: true
+host: 0.0.0.0
+port: 8080
+database_url: postgres://postgres:password@localhost:5432/training?sslmode=disable
+migration_source: file://internal/database/migrations

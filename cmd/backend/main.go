@@ -1,11 +1,21 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -33,7 +43,77 @@ func main() {
 
 	logger.Info("Logger initialized successfully")
 
+	logger.Info("Starting database migration")
+	err = database.MigrationUp(cfg.MigrationSource, cfg.DatabaseURL, logger)
+	if err != nil {
+		logger.Fatal("Failed to apply database migrations", zap.Error(err))
+	}
+
+	dbPool, err := initDatabasePool(cfg.DatabaseURL)
+	if err != nil {
+		logger.Fatal("Failed to initialize database pool", zap.Error(err))
+	}
+	defer dbPool.Close()
+
+	// initialize validator
+	validator := internal.NewValidator()
+
+	// initialize services
+	postService := post.NewService(logger, dbPool)
+
+	// initialize handlers
+	postHandler := post.NewHandler(logger, validator, postService)
+
+	// initialize mux
+	mux := http.NewServeMux()
+
+	// set up routes
+	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
+	mux.HandleFunc("POST /api/posts", postHandler.CreateHandler)
+	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
+	mux.HandleFunc("PUT /api/post/{id}", postHandler.UpdateHandler)
+	mux.HandleFunc("DELETE /api/post/{id}", postHandler.DeleteHandler)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	srv := &http.Server{
+		Addr:    cfg.Host + ":" + cfg.Port,
+		Handler: mux,
+	}
+
+	go func() {
+		logger.Info("Starting listening request", zap.String("host", cfg.Host), zap.String("port", cfg.Port))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatal("Fail to start server with error", zap.Error(err))
+		}
+	}()
+
+	// wait for context close
+	<-ctx.Done()
+	logger.Info("Shutting down gracefully...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Server forced to shutdown", zap.Error(err))
+	}
+
 	logger.Info("Successfully shutdown")
+}
+
+func initDatabasePool(databaseURL string) (*pgxpool.Pool, error) {
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		log.Fatalf("Unable to parse config: %v", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return pool, nil
 }
 
 func EarlyApplicationFailed(title, action string) string {

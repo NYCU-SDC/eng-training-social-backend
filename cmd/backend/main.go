@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/auth"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"log"
@@ -59,20 +61,28 @@ func main() {
 	validator := internal.NewValidator()
 
 	// initialize services
+	userService := user.NewService(logger, dbPool)
 	postService := post.NewService(logger, dbPool)
 
 	// initialize handlers
+	authHandler := auth.NewHandler(logger, cfg, validator, userService)
+	userHandler := user.NewHandler(logger, validator, userService)
 	postHandler := post.NewHandler(logger, validator, postService)
 
 	// initialize mux
 	mux := http.NewServeMux()
 
 	// set up routes
+	mux.HandleFunc("GET /api/login/oauth/{provider}", authHandler.Oauth2Start)
+	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
+
 	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
 	mux.HandleFunc("POST /api/posts", postHandler.CreateHandler)
 	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
 	mux.HandleFunc("PUT /api/post/{id}", postHandler.UpdateHandler)
 	mux.HandleFunc("DELETE /api/post/{id}", postHandler.DeleteHandler)
+
+	mux.HandleFunc("GET /api/users/{id}", userHandler.GetByIDHandler)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -12,12 +12,15 @@ const DefaultSecret = "default-secret"
 var ErrDatabaseURLRequired = errors.New("database_url is required")
 
 type Config struct {
-	Debug           bool   `yaml:"debug"              envconfig:"DEBUG"`
-	Host            string `yaml:"host"               envconfig:"HOST"`
-	Port            string `yaml:"port"               envconfig:"PORT"`
-	Secret          string `yaml:"secret"             envconfig:"SECRET"`
-	DatabaseURL     string `yaml:"database_url"       envconfig:"DATABASE_URL"`
-	MigrationSource string `yaml:"migration_source"   envconfig:"MIGRATION_SOURCE"`
+	Debug              bool   `yaml:"debug"              envconfig:"DEBUG"`
+	Host               string `yaml:"host"               envconfig:"HOST"`
+	Port               string `yaml:"port"               envconfig:"PORT"`
+	BaseURL            string `yaml:"base_url"           envconfig:"BASE_URL"`
+	Secret             string `yaml:"secret"             envconfig:"SECRET"`
+	DatabaseURL        string `yaml:"database_url"       envconfig:"DATABASE_URL"`
+	MigrationSource    string `yaml:"migration_source"   envconfig:"MIGRATION_SOURCE"`
+	GoogleClientID     string `yaml:"google_client_id"   envconfig:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret string `yaml:"google_client_secret" envconfig:"GOOGLE_CLIENT_SECRET"`
 }
 
 func (c Config) Validate() error {

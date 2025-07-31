@@ -16,3 +16,11 @@ type Post struct {
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
 }
+
+type User struct {
+	ID        uuid.UUID
+	Username  string
+	Email     string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/auth"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/comment"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
@@ -65,11 +66,13 @@ func main() {
 	userService := user.NewService(logger, dbPool)
 	postService := post.NewService(logger, dbPool)
 	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
+	commentService := comment.NewService(logger, dbPool)
 
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
 	userHandler := user.NewHandler(logger, validator, userService)
 	postHandler := post.NewHandler(logger, validator, postService)
+	commentHandler := comment.NewHandler(logger, validator, commentService)
 
 	// initialize middleware
 	jwtMiddleware := jwt.NewMiddleware(logger, jwtService)
@@ -89,6 +92,12 @@ func main() {
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.DeleteHandler))
 
 	mux.HandleFunc("GET /api/user/{id}", userHandler.GetByIDHandler)
+
+	mux.HandleFunc("GET /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.GetByIDHandler))
+	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.UpdateHandler))
+	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.DeleteHandler))
+	mux.HandleFunc("GET /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
+	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.CreateHandler))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

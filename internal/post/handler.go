@@ -18,6 +18,7 @@ type Response struct {
 	ID        uuid.UUID `json:"id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
+	AuthorID  uuid.UUID `json:"authorId"`
 	CreatedAt string    `json:"createdAt"`
 	UpdatedAt string    `json:"updatedAt"`
 }
@@ -58,6 +59,7 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 			ID:        post.ID,
 			Title:     post.Title.String,
 			Content:   post.Content.String,
+			AuthorID:  post.AuthorID.Bytes,
 			CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
 			UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
 		}
@@ -87,6 +89,7 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		ID:        post.ID,
 		Title:     post.Title.String,
 		Content:   post.Content.String,
+		AuthorID:  post.AuthorID.Bytes,
 		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
 	}
@@ -114,6 +117,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		ID:        post.ID,
 		Title:     post.Title.String,
 		Content:   post.Content.String,
+		AuthorID:  post.AuthorID.Bytes,
 		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
 	}
@@ -149,6 +153,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		ID:        post.ID,
 		Title:     post.Title.String,
 		Content:   post.Content.String,
+		AuthorID:  post.AuthorID.Bytes,
 		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
 	}

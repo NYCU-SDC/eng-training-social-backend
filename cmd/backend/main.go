@@ -71,6 +71,9 @@ func main() {
 	userHandler := user.NewHandler(logger, validator, userService)
 	postHandler := post.NewHandler(logger, validator, postService)
 
+	// initialize middleware
+	jwtMiddleware := jwt.NewMiddleware(logger, jwtService)
+
 	// initialize mux
 	mux := http.NewServeMux()
 
@@ -79,11 +82,11 @@ func main() {
 	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
 	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
 
-	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
-	mux.HandleFunc("POST /api/posts", postHandler.CreateHandler)
-	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
-	mux.HandleFunc("PUT /api/post/{id}", postHandler.UpdateHandler)
-	mux.HandleFunc("DELETE /api/post/{id}", postHandler.DeleteHandler)
+	mux.HandleFunc("GET /api/posts", jwtMiddleware.HandlerFunc(postHandler.GetAllHandler))
+	mux.HandleFunc("POST /api/posts", jwtMiddleware.HandlerFunc(postHandler.CreateHandler))
+	mux.HandleFunc("GET /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.GetByIDHandler))
+	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.UpdateHandler))
+	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.DeleteHandler))
 
 	mux.HandleFunc("GET /api/user/{id}", userHandler.GetByIDHandler)
 

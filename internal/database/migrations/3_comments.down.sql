@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS comments;
+
+ALTER TABLE posts
+DROP COLUMN IF EXISTS author_id;

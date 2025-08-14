@@ -6,6 +6,3 @@ CREATE TABLE IF NOT EXISTS comments (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
-
-ALTER TABLE posts
-ADD COLUMN author_id UUID REFERENCES users(id) ON DELETE SET NULL;

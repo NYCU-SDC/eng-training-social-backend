@@ -77,6 +77,9 @@ func main() {
 	// initialize middleware
 	jwtMiddleware := jwt.NewMiddleware(logger, jwtService)
 
+	// initialize middleware
+	jwtMiddleware := jwt.NewMiddleware(logger, jwtService)
+
 	// initialize mux
 	mux := http.NewServeMux()
 

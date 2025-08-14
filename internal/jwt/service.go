@@ -53,10 +53,12 @@ func (s Service) New(ctx context.Context, user User) (string, error) {
 
 	id := user.ID
 	email := user.Email
+	username := user.Username
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
-		ID:    id,
-		Email: email,
+		ID:       id,
+		Email:    email,
+		FullName: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "Clustron",
 			Subject:   id.String(),
@@ -125,8 +127,9 @@ func (s Service) Parse(ctx context.Context, tokenString string) (User, error) {
 	s.logger.Debug("Successfully parsed JWT token", zap.String("id", claims.ID.String()), zap.String("username", claims.FullName))
 
 	return User{
-		ID:    claims.ID,
-		Email: claims.Email,
+		ID:       claims.ID,
+		Email:    claims.Email,
+		Username: claims.FullName,
 	}, nil
 }
 

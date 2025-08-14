@@ -7,6 +7,7 @@ import (
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/auth/oauthprovider"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -15,6 +16,12 @@ import (
 	"net/http"
 	"net/url"
 )
+
+type JWTIssuer interface {
+	New(ctx context.Context, user jwt.User) (string, error)
+	Parse(ctx context.Context, tokenString string) (jwt.User, error)
+	GenerateRefreshToken(ctx context.Context, user jwt.User) (jwt.RefreshToken, error)
+}
 
 type Response struct {
 	ID       uuid.UUID `json:"id"`
@@ -45,10 +52,11 @@ type Handler struct {
 	config    config.Config
 	validator *validator.Validate
 	userStore UserStore
+	jwtIssuer JWTIssuer
 	provider  map[string]OAuthProvider
 }
 
-func NewHandler(logger *zap.Logger, config config.Config, validator *validator.Validate, userStore UserStore) *Handler {
+func NewHandler(logger *zap.Logger, config config.Config, validator *validator.Validate, userStore UserStore, jwtIssuer JWTIssuer) *Handler {
 	googleProvider := oauthprovider.NewGoogleConfig(
 		config.GoogleClientID,
 		config.GoogleClientSecret,
@@ -59,6 +67,7 @@ func NewHandler(logger *zap.Logger, config config.Config, validator *validator.V
 		config:    config,
 		validator: validator,
 		userStore: userStore,
+		jwtIssuer: jwtIssuer,
 		provider: map[string]OAuthProvider{
 			"google": googleProvider,
 		},
@@ -111,7 +120,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 
 	callback := callbackInfo.callback.String()
 	code := callbackInfo.code
-	//redirectTo := callbackInfo.redirectTo
+	redirectTo := callbackInfo.redirectTo
 	oauthError := callbackInfo.oauthError
 
 	if oauthError != "" {
@@ -141,22 +150,21 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := Response{
-		ID:       newUser.ID,
-		Username: newUser.Username,
-		Email:    newUser.Email,
+	jwtToken, refreshTokenID, err := h.generateJWT(r.Context(), newUser)
+	if err != nil {
+		h.logger.Error("Failed to generate JWT token", zap.Error(err))
+		internal.WriteJSONResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate JWT token: %s", err))
+		return
 	}
 
-	internal.WriteJSONResponse(w, http.StatusOK, response)
+	var redirectWithToken string
+	if redirectTo != "" {
+		redirectWithToken = fmt.Sprintf("%s?token=%s&refreshToken=%s&r=%s", callback, jwtToken, refreshTokenID, redirectTo)
+	} else {
+		redirectWithToken = fmt.Sprintf("%s?token=%s&refreshToken=%s", callback, jwtToken, refreshTokenID)
+	}
 
-	//var redirectWithToken string
-	//if redirectTo != "" {
-	//	redirectWithToken = fmt.Sprintf("%s?token=%s&refreshToken=%s&r=%s", callback, jwtToken, refreshTokenID, redirectTo)
-	//} else {
-	//	redirectWithToken = fmt.Sprintf("%s?token=%s&refreshToken=%s", callback, jwtToken, refreshTokenID)
-	//}
-
-	//http.Redirect(w, r, redirectWithToken, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, redirectWithToken, http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) getCallBackInfo(url *url.URL) (callBackInfo, error) {
@@ -185,4 +193,43 @@ func (h *Handler) getCallBackInfo(url *url.URL) (callBackInfo, error) {
 		callback:   *callback,
 		redirectTo: redirectTo,
 	}, nil
+}
+
+func (h *Handler) DebugToken(w http.ResponseWriter, r *http.Request) {
+	e := r.URL.Query().Get("error")
+	if e != "" {
+		h.logger.Error("Debug endpoint error", zap.String("error", e))
+		internal.WriteJSONResponse(w, http.StatusBadRequest, fmt.Sprintf("Error: %s", e))
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		h.logger.Error("Token is required for debug endpoint")
+		internal.WriteJSONResponse(w, http.StatusBadRequest, "Token is required for debug endpoint")
+		return
+	}
+
+	jwtUser, err := h.jwtIssuer.Parse(r.Context(), token)
+	if err != nil {
+		h.logger.Error("Failed to parse JWT token", zap.Error(err), zap.String("token", token))
+		internal.WriteJSONResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to parse JWT token: %s", err))
+		return
+	}
+
+	internal.WriteJSONResponse(w, http.StatusOK, jwtUser)
+}
+
+func (h *Handler) generateJWT(ctx context.Context, user user.User) (string, string, error) {
+	jwtToken, err := h.jwtIssuer.New(ctx, jwt.User(user))
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := h.jwtIssuer.GenerateRefreshToken(ctx, jwt.User(user))
+	if err != nil {
+		return "", "", err
+	}
+
+	return jwtToken, refreshToken.ID.String(), nil
 }

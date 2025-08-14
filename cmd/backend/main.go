@@ -8,6 +8,7 @@ import (
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/auth"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -63,9 +64,10 @@ func main() {
 	// initialize services
 	userService := user.NewService(logger, dbPool)
 	postService := post.NewService(logger, dbPool)
+	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, userService, dbPool)
 
 	// initialize handlers
-	authHandler := auth.NewHandler(logger, cfg, validator, userService)
+	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
 	userHandler := user.NewHandler(logger, validator, userService)
 	postHandler := post.NewHandler(logger, validator, postService)
 
@@ -75,6 +77,7 @@ func main() {
 	// set up routes
 	mux.HandleFunc("GET /api/login/oauth/{provider}", authHandler.Oauth2Start)
 	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
+	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
 
 	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
 	mux.HandleFunc("POST /api/posts", postHandler.CreateHandler)

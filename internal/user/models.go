@@ -13,6 +13,7 @@ type Post struct {
 	ID        uuid.UUID
 	Title     pgtype.Text
 	Content   pgtype.Text
+	AuthorID  pgtype.UUID
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
 }

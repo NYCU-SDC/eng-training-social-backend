@@ -10,6 +10,10 @@ import (
 	"net/http"
 )
 
+type contextKey string
+
+var UserContextKey contextKey = "user"
+
 func ParseAndValidateRequestBody(ctx context.Context, v *validator.Validate, r *http.Request, s interface{}) error {
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {

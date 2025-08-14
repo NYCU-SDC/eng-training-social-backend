@@ -13,21 +13,23 @@ import (
 )
 
 const create = `-- name: Create :one
-INSERT INTO posts (title, content) VALUES ($1, $2) RETURNING id, title, content, created_at, updated_at
+INSERT INTO posts (author_id, title, content) VALUES ($1, $2, $3) RETURNING id, title, content, author_id, created_at, updated_at
 `
 
 type CreateParams struct {
-	Title   pgtype.Text
-	Content pgtype.Text
+	AuthorID pgtype.UUID
+	Title    pgtype.Text
+	Content  pgtype.Text
 }
 
 func (q *Queries) Create(ctx context.Context, arg CreateParams) (Post, error) {
-	row := q.db.QueryRow(ctx, create, arg.Title, arg.Content)
+	row := q.db.QueryRow(ctx, create, arg.AuthorID, arg.Title, arg.Content)
 	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
 		&i.Content,
+		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -44,7 +46,7 @@ func (q *Queries) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAll = `-- name: GetAll :many
-SELECT id, title, content, created_at, updated_at FROM posts
+SELECT id, title, content, author_id, created_at, updated_at FROM posts
 `
 
 func (q *Queries) GetAll(ctx context.Context) ([]Post, error) {
@@ -60,6 +62,7 @@ func (q *Queries) GetAll(ctx context.Context) ([]Post, error) {
 			&i.ID,
 			&i.Title,
 			&i.Content,
+			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -74,7 +77,7 @@ func (q *Queries) GetAll(ctx context.Context) ([]Post, error) {
 }
 
 const getByID = `-- name: GetByID :one
-SELECT id, title, content, created_at, updated_at FROM posts WHERE id = $1
+SELECT id, title, content, author_id, created_at, updated_at FROM posts WHERE id = $1
 `
 
 func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Post, error) {
@@ -84,6 +87,7 @@ func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Post, error) {
 		&i.ID,
 		&i.Title,
 		&i.Content,
+		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -91,7 +95,7 @@ func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Post, error) {
 }
 
 const update = `-- name: Update :one
-UPDATE posts SET title = $1, content = $2, updated_at = now() WHERE id = $3 RETURNING id, title, content, created_at, updated_at
+UPDATE posts SET title = $1, content = $2, updated_at = now() WHERE id = $3 RETURNING id, title, content, author_id, created_at, updated_at
 `
 
 type UpdateParams struct {
@@ -107,6 +111,7 @@ func (q *Queries) Update(ctx context.Context, arg UpdateParams) (Post, error) {
 		&i.ID,
 		&i.Title,
 		&i.Content,
+		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

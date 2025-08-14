@@ -1,0 +1,214 @@
+package jwt
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"strings"
+	"time"
+)
+
+type Store interface {
+	GetByID(ctx context.Context, id uuid.UUID) (user.User, error)
+}
+
+type Service struct {
+	logger                 *zap.Logger
+	secret                 string
+	expiration             time.Duration
+	refreshTokenExpiration time.Duration
+	userStore              Store
+	tracer                 trace.Tracer
+	queries                *Queries
+}
+
+func NewService(logger *zap.Logger, secret string, expiration, refreshTokenExpiration time.Duration, userStore Store, db DBTX) *Service {
+	return &Service{
+		logger:                 logger,
+		secret:                 secret,
+		expiration:             expiration,
+		refreshTokenExpiration: refreshTokenExpiration,
+		userStore:              userStore,
+		tracer:                 otel.Tracer("jwt/service"),
+		queries:                New(db),
+	}
+}
+
+type claims struct {
+	ID       uuid.UUID
+	FullName string
+	Email    string
+	jwt.RegisteredClaims
+}
+
+func (s Service) New(ctx context.Context, user User) (string, error) {
+	jwtID := uuid.New()
+
+	id := user.ID
+	email := user.Email
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
+		ID:    id,
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "Clustron",
+			Subject:   id.String(),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.expiration)),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:        jwtID.String(),
+		},
+	})
+
+	tokenString, err := token.SignedString([]byte(s.secret))
+	if err != nil {
+		s.logger.Error("Failed to sign token", zap.Error(err), zap.String("id", id.String()))
+		return "", err
+	}
+
+	s.logger.Debug("Generated new JWT token", zap.String("id", id.String()))
+
+	return tokenString, nil
+}
+
+func (s Service) Parse(ctx context.Context, tokenString string) (User, error) {
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.secret), nil
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenMalformed):
+			s.logger.Warn("Failed to parse JWT token due to malformed structure, this is not a JWT token", zap.String("error", err.Error()))
+			return User{}, err
+		case errors.Is(err, jwt.ErrSignatureInvalid):
+			s.logger.Warn("Failed to parse JWT token due to invalid signature", zap.String("error", err.Error()))
+			return User{}, err
+		case errors.Is(err, jwt.ErrTokenExpired):
+			expiredTime, getErr := token.Claims.GetExpirationTime()
+			if getErr != nil {
+				s.logger.Warn("Failed to parse JWT token due to expired timestamp", zap.String("error", err.Error()))
+			} else {
+				s.logger.Warn("Failed to parse JWT token due to expired timestamp", zap.String("error", err.Error()), zap.Time("expired_at", expiredTime.Time))
+			}
+
+			return User{}, err
+		case errors.Is(err, jwt.ErrTokenNotValidYet):
+			notBeforeTime, getErr := token.Claims.GetNotBefore()
+			if getErr != nil {
+				s.logger.Warn("Failed to parse JWT token due to not valid yet timestamp", zap.String("error", err.Error()))
+			} else {
+				s.logger.Warn("Failed to parse JWT token due to not valid yet timestamp", zap.String("error", err.Error()), zap.Time("not_valid_yet", notBeforeTime.Time))
+			}
+
+			return User{}, err
+		default:
+			s.logger.Error("Failed to parse or validate JWT token", zap.Error(err))
+			return User{}, err
+		}
+	}
+
+	claims, ok := token.Claims.(*claims)
+	if !ok {
+		s.logger.Error("Failed to extract claims from JWT token")
+		return User{}, fmt.Errorf("failed to extract claims from JWT token")
+	}
+
+	s.logger.Debug("Successfully parsed JWT token", zap.String("id", claims.ID.String()), zap.String("username", claims.FullName))
+
+	return User{
+		ID:    claims.ID,
+		Email: claims.Email,
+	}, nil
+}
+
+func (s Service) GetUserByRefreshToken(ctx context.Context, id uuid.UUID) (User, error) {
+	refreshToken, err := s.queries.GetByID(ctx, id)
+	if err != nil {
+		s.logger.Error("Failed to get user by refresh token", zap.Error(err), zap.String("id", id.String()))
+		return User{}, err
+	}
+
+	// Check if the refresh token is expired
+	if refreshToken.ExpirationDate.Time.Before(time.Now()) {
+		s.logger.Warn("Refresh token is expired", zap.String("id", id.String()), zap.Time("expiration_date", refreshToken.ExpirationDate.Time))
+		return User{}, err
+	}
+
+	// Check if the refresh token is active
+	if !refreshToken.IsActive.Bool {
+		s.logger.Warn("Refresh token is inactive", zap.String("id", id.String()))
+		return User{}, err
+	}
+
+	jwtUser, err := s.queries.GetUserByRefreshToken(ctx, id)
+	if err != nil {
+		s.logger.Error("Failed to get user by refresh token", zap.Error(err), zap.String("id", id.String()))
+		return User{}, err
+	}
+	return jwtUser, nil
+}
+
+// GenerateRefreshToken Generate a new refresh token for the user
+func (s Service) GenerateRefreshToken(ctx context.Context, user User) (RefreshToken, error) {
+	// Remove expired and inactive refresh tokens
+	_, err := s.DeleteExpiredRefreshTokens(ctx)
+	if err != nil {
+		s.logger.Warn("Failed to delete expired refresh tokens", zap.Error(err))
+	}
+
+	expirationDate := time.Now()
+	newDate := expirationDate.Add(s.refreshTokenExpiration)
+
+	refreshToken, err := s.queries.Create(ctx, CreateParams{
+		UserID:         user.ID,
+		ExpirationDate: pgtype.Timestamptz{Time: newDate, Valid: true},
+	})
+	if err != nil {
+		s.logger.Error("Failed to create refresh token", zap.Error(err), zap.String("user_id", user.ID.String()))
+		return RefreshToken{}, err
+	}
+
+	return refreshToken, nil
+}
+
+// InactivateRefreshToken Inactivate a refresh token
+func (s Service) InactivateRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := s.queries.Inactivate(ctx, id)
+	if err != nil {
+		s.logger.Error("Failed to inactivate refresh token", zap.Error(err), zap.String("token_id", id.String()))
+		return err
+	}
+
+	return nil
+}
+
+func (s Service) InactivateRefreshTokensByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := s.queries.InactivateByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to inactivate refresh tokens by user ID", zap.Error(err), zap.String("user_id", userID.String()))
+		return err
+	}
+
+	return nil
+}
+
+// DeleteExpiredRefreshTokens Remove expired and inactive refresh tokens
+func (s Service) DeleteExpiredRefreshTokens(ctx context.Context) (int64, error) {
+	rowsAffected, err := s.queries.DeleteExpired(ctx)
+	if err != nil {
+		s.logger.Error("Failed to delete expired refresh tokens", zap.Error(err))
+		return 0, err
+	}
+
+	s.logger.Debug("Deleted expired refresh tokens", zap.Int64("rows_affected", rowsAffected))
+	return rowsAffected, nil
+}

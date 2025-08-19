@@ -75,10 +75,10 @@ func main() {
 
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
-	userHandler := user.NewHandler(logger, validator, userService, followService)
+	userHandler := user.NewHandler(logger, validator, userService)
 	jwtHandler := jwt.NewHandler(logger, validator, jwtService)
-	postHandler := post.NewHandler(logger, validator, postService, reactionService)
-	commentHandler := comment.NewHandler(logger, validator, commentService, reactionService)
+	postHandler := post.NewHandler(logger, validator, postService)
+	commentHandler := comment.NewHandler(logger, validator, commentService)
 	reactionHandler := reaction.NewHandler(logger, validator, reactionService)
 
 	// initialize middleware

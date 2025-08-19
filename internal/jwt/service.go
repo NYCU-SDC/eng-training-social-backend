@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,27 +14,21 @@ import (
 	"time"
 )
 
-type Store interface {
-	GetByID(ctx context.Context, id uuid.UUID) (user.User, error)
-}
-
 type Service struct {
 	logger                 *zap.Logger
 	secret                 string
 	expiration             time.Duration
 	refreshTokenExpiration time.Duration
-	userStore              Store
 	tracer                 trace.Tracer
 	queries                *Queries
 }
 
-func NewService(logger *zap.Logger, secret string, expiration, refreshTokenExpiration time.Duration, userStore Store, db DBTX) *Service {
+func NewService(logger *zap.Logger, secret string, expiration, refreshTokenExpiration time.Duration, db DBTX) *Service {
 	return &Service{
 		logger:                 logger,
 		secret:                 secret,
 		expiration:             expiration,
 		refreshTokenExpiration: refreshTokenExpiration,
-		userStore:              userStore,
 		tracer:                 otel.Tracer("jwt/service"),
 		queries:                New(db),
 	}

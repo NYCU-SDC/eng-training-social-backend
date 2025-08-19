@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"

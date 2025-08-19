@@ -139,7 +139,7 @@ func (q *Queries) ExistsByPostIDAndUserID(ctx context.Context, arg ExistsByPostI
 }
 
 const getByCommentIDAndUserID = `-- name: GetByCommentIDAndUserID :one
-SELECT id, post_id, comment_id, user_id, reaction_type, content_type, created_at, updated_at FROM reactions WHERE comment_id = $1 AND user_id = $2
+SELECT reactions.reaction_type FROM reactions WHERE comment_id = $1 AND user_id = $2
 `
 
 type GetByCommentIDAndUserIDParams struct {
@@ -147,24 +147,15 @@ type GetByCommentIDAndUserIDParams struct {
 	UserID    uuid.UUID
 }
 
-func (q *Queries) GetByCommentIDAndUserID(ctx context.Context, arg GetByCommentIDAndUserIDParams) (Reaction, error) {
+func (q *Queries) GetByCommentIDAndUserID(ctx context.Context, arg GetByCommentIDAndUserIDParams) (ReactionType, error) {
 	row := q.db.QueryRow(ctx, getByCommentIDAndUserID, arg.CommentID, arg.UserID)
-	var i Reaction
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.CommentID,
-		&i.UserID,
-		&i.ReactionType,
-		&i.ContentType,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var reaction_type ReactionType
+	err := row.Scan(&reaction_type)
+	return reaction_type, err
 }
 
 const getByPostIDAndUserID = `-- name: GetByPostIDAndUserID :one
-SELECT id, post_id, comment_id, user_id, reaction_type, content_type, created_at, updated_at FROM reactions WHERE post_id = $1 AND user_id = $2
+SELECT reactions.reaction_type FROM reactions WHERE post_id = $1 AND user_id = $2
 `
 
 type GetByPostIDAndUserIDParams struct {
@@ -172,18 +163,9 @@ type GetByPostIDAndUserIDParams struct {
 	UserID uuid.UUID
 }
 
-func (q *Queries) GetByPostIDAndUserID(ctx context.Context, arg GetByPostIDAndUserIDParams) (Reaction, error) {
+func (q *Queries) GetByPostIDAndUserID(ctx context.Context, arg GetByPostIDAndUserIDParams) (ReactionType, error) {
 	row := q.db.QueryRow(ctx, getByPostIDAndUserID, arg.PostID, arg.UserID)
-	var i Reaction
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.CommentID,
-		&i.UserID,
-		&i.ReactionType,
-		&i.ContentType,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var reaction_type ReactionType
+	err := row.Scan(&reaction_type)
+	return reaction_type, err
 }

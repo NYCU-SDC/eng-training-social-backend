@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -39,17 +38,11 @@ func (s Service) GetByID(ctx context.Context, id uuid.UUID) (Post, error) {
 	return post, nil
 }
 
-func (s Service) Create(ctx context.Context, title, content string) (Post, error) {
-	jwtUser, err := jwt.GetUserFromContext(ctx)
-	if err != nil {
-		s.logger.Error("Failed to get user from context", zap.Error(err))
-		return Post{}, err
-	}
-
+func (s Service) Create(ctx context.Context, title, content string, userID uuid.UUID) (Post, error) {
 	post, err := s.queries.Create(ctx, CreateParams{
 		Title:    pgtype.Text{String: title, Valid: true},
 		Content:  pgtype.Text{String: content, Valid: true},
-		AuthorID: pgtype.UUID{Bytes: jwtUser.ID, Valid: true},
+		AuthorID: pgtype.UUID{Bytes: userID, Valid: true},
 	})
 	if err != nil {
 		s.logger.Error("Failed to create post", zap.Error(err))

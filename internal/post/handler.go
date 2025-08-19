@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -26,7 +27,7 @@ type Response struct {
 type Store interface {
 	GetAll(ctx context.Context) ([]Post, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Post, error)
-	Create(ctx context.Context, title, content string) (Post, error)
+	Create(ctx context.Context, title, content string, userID uuid.UUID) (Post, error)
 	Update(ctx context.Context, id uuid.UUID, title, content string) (Post, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -106,7 +107,14 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := h.store.Create(r.Context(), request.Title, request.Content)
+	jwtUser, err := jwt.GetUserFromContext(r.Context())
+	if err != nil {
+		h.logger.Error("Failed to get user from context", zap.Error(err))
+		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
+		return
+	}
+
+	post, err := h.store.Create(r.Context(), request.Title, request.Content, jwtUser.ID)
 	if err != nil {
 		h.logger.Error("Failed to create post", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to create post")

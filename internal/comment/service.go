@@ -2,7 +2,6 @@ package comment
 
 import (
 	"context"
-	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -39,16 +38,10 @@ func (s Service) GetByID(ctx context.Context, id uuid.UUID) (Comment, error) {
 	return comment, nil
 }
 
-func (s Service) Create(ctx context.Context, content string, postID uuid.UUID) (Comment, error) {
-	jwtUser, err := jwt.GetUserFromContext(ctx)
-	if err != nil {
-		s.logger.Error("Failed to get user from context", zap.Error(err))
-		return Comment{}, err
-	}
-
+func (s Service) Create(ctx context.Context, content string, postID, userID uuid.UUID) (Comment, error) {
 	comment, err := s.queries.Create(ctx, CreateParams{
 		Content:  pgtype.Text{String: content, Valid: true},
-		AuthorID: pgtype.UUID{Bytes: jwtUser.ID, Valid: true},
+		AuthorID: pgtype.UUID{Bytes: userID, Valid: true},
 		PostID:   postID,
 	})
 	if err != nil {

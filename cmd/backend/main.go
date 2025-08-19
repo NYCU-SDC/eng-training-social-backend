@@ -10,6 +10,7 @@ import (
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/cors"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/follow"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/reaction"
@@ -70,13 +71,14 @@ func main() {
 	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
 	commentService := comment.NewService(logger, dbPool)
 	reactionService := reaction.NewService(logger, dbPool)
+	followService := follow.NewService(logger, dbPool)
 
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
-	userHandler := user.NewHandler(logger, validator, userService)
+	userHandler := user.NewHandler(logger, validator, userService, followService)
 	jwtHandler := jwt.NewHandler(logger, validator, jwtService)
-	postHandler := post.NewHandler(logger, validator, postService)
-	commentHandler := comment.NewHandler(logger, validator, commentService)
+	postHandler := post.NewHandler(logger, validator, postService, reactionService)
+	commentHandler := comment.NewHandler(logger, validator, commentService, reactionService)
 	reactionHandler := reaction.NewHandler(logger, validator, reactionService)
 
 	// initialize middleware
@@ -100,6 +102,8 @@ func main() {
 	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddleware.HandlerFunc(reactionHandler.ReactToPost))
 
 	mux.HandleFunc("GET /api/user/{id}", jwtMiddleware.HandlerFunc(userHandler.GetByIDHandler))
+	mux.HandleFunc("GET /api/user/{id}/follow", jwtMiddleware.HandlerFunc(userHandler.FollowHandler))
+	mux.HandleFunc("GET /api/user/{id}/unfollow", jwtMiddleware.HandlerFunc(userHandler.UnfollowHandler))
 
 	mux.HandleFunc("GET /api/comment/{id}", commentHandler.GetByIDHandler)
 	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.UpdateHandler))

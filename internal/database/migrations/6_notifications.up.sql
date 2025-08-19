@@ -1,0 +1,13 @@
+CREATE TYPE notification_type AS ENUM (
+    'POST'
+    'COMMENT'
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    content_id INTEGER NOT NULL,
+    content_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.28.0
 
-package post
+package reaction
 
 import (
 	"database/sql/driver"
@@ -98,23 +98,21 @@ func (ns NullReactionType) Value() (driver.Value, error) {
 }
 
 type Comment struct {
-	ID         uuid.UUID
-	PostID     uuid.UUID
-	AuthorID   pgtype.UUID
-	AuthorName pgtype.Text
-	Content    pgtype.Text
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ID        uuid.UUID
+	PostID    uuid.UUID
+	AuthorID  pgtype.UUID
+	Content   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Post struct {
-	ID         uuid.UUID
-	Title      pgtype.Text
-	Content    pgtype.Text
-	AuthorID   pgtype.UUID
-	AuthorName pgtype.Text
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ID        uuid.UUID
+	Title     pgtype.Text
+	Content   pgtype.Text
+	AuthorID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Reaction struct {

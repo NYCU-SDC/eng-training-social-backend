@@ -5,9 +5,97 @@
 package user
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type ContentType string
+
+const (
+	ContentTypePOST    ContentType = "POST"
+	ContentTypeCOMMENT ContentType = "COMMENT"
+)
+
+func (e *ContentType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ContentType(s)
+	case string:
+		*e = ContentType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ContentType: %T", src)
+	}
+	return nil
+}
+
+type NullContentType struct {
+	ContentType ContentType
+	Valid       bool // Valid is true if ContentType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullContentType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ContentType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ContentType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullContentType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ContentType), nil
+}
+
+type ReactionType string
+
+const (
+	ReactionTypeLIKE    ReactionType = "LIKE"
+	ReactionTypeDISLIKE ReactionType = "DISLIKE"
+	ReactionTypeNONE    ReactionType = "NONE"
+)
+
+func (e *ReactionType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ReactionType(s)
+	case string:
+		*e = ReactionType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ReactionType: %T", src)
+	}
+	return nil
+}
+
+type NullReactionType struct {
+	ReactionType ReactionType
+	Valid        bool // Valid is true if ReactionType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullReactionType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ReactionType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ReactionType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullReactionType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ReactionType), nil
+}
 
 type Comment struct {
 	ID         uuid.UUID
@@ -27,6 +115,17 @@ type Post struct {
 	AuthorName pgtype.Text
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
+}
+
+type Reaction struct {
+	ID           uuid.UUID
+	PostID       pgtype.UUID
+	CommentID    pgtype.UUID
+	UserID       uuid.UUID
+	ReactionType ReactionType
+	ContentType  ContentType
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type RefreshToken struct {

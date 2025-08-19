@@ -9,7 +9,6 @@ import (
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/comment"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/config"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
-	"github.com/NYCU-SDC/eng-training-social-backend/internal/follow"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/reaction"
@@ -66,17 +65,16 @@ func main() {
 
 	// initialize services
 	userService := user.NewService(logger, dbPool)
+	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, userService, dbPool)
 	postService := post.NewService(logger, dbPool)
-	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
 	commentService := comment.NewService(logger, dbPool)
 	reactionService := reaction.NewService(logger, dbPool)
-	followService := follow.NewService(logger, dbPool)
 
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
-	userHandler := user.NewHandler(logger, validator, userService, followService)
-	postHandler := post.NewHandler(logger, validator, postService, reactionService)
-	commentHandler := comment.NewHandler(logger, validator, commentService, reactionService)
+	userHandler := user.NewHandler(logger, validator, userService)
+	postHandler := post.NewHandler(logger, validator, postService)
+	commentHandler := comment.NewHandler(logger, validator, commentService)
 	reactionHandler := reaction.NewHandler(logger, validator, reactionService)
 
 	// initialize middleware
@@ -90,21 +88,19 @@ func main() {
 	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
 	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
 
-	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
+	mux.HandleFunc("GET /api/posts", jwtMiddleware.HandlerFunc(postHandler.GetAllHandler))
 	mux.HandleFunc("POST /api/posts", jwtMiddleware.HandlerFunc(postHandler.CreateHandler))
-	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
+	mux.HandleFunc("GET /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.GetByIDHandler))
 	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.DeleteHandler))
 	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddleware.HandlerFunc(reactionHandler.ReactToPost))
 
 	mux.HandleFunc("GET /api/users/{id}", jwtMiddleware.HandlerFunc(userHandler.GetByIDHandler))
-	mux.HandleFunc("GET /api/user/{id}/follow", jwtMiddleware.HandlerFunc(userHandler.FollowHandler))
-	mux.HandleFunc("GET /api/user/{id}/unfollow", jwtMiddleware.HandlerFunc(userHandler.UnfollowHandler))
 
-	mux.HandleFunc("GET /api/comment/{id}", commentHandler.GetByIDHandler)
+	mux.HandleFunc("GET /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.GetByIDHandler))
 	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.DeleteHandler))
-	mux.HandleFunc("GET /api/post/{id}/comments", commentHandler.GetAllByPostIDHandler)
+	mux.HandleFunc("GET /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
 	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.CreateHandler))
 	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddleware.HandlerFunc(reactionHandler.ReactToComment))
 

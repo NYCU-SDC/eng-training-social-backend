@@ -12,6 +12,7 @@ import (
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/database"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/post"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/reaction"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/user"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -68,6 +69,7 @@ func main() {
 	postService := post.NewService(logger, dbPool)
 	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
 	commentService := comment.NewService(logger, dbPool)
+	reactionService := reaction.NewService(logger, dbPool)
 
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
@@ -75,6 +77,7 @@ func main() {
 	jwtHandler := jwt.NewHandler(logger, validator, jwtService)
 	postHandler := post.NewHandler(logger, validator, postService)
 	commentHandler := comment.NewHandler(logger, validator, commentService)
+	reactionHandler := reaction.NewHandler(logger, validator, reactionService)
 
 	// initialize middleware
 	corsMiddleware := cors.NewMiddleware(logger, cfg.AllowOrigins)
@@ -98,6 +101,7 @@ func main() {
 	mux.HandleFunc("GET /api/post/{id}", corsMiddleware.HandlerFunc(postHandler.GetByIDHandler))
 	mux.HandleFunc("PUT /api/post/{id}", jwtMiddlewareChain(postHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddlewareChain(postHandler.DeleteHandler))
+	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddlewareChain(reactionHandler.ReactToPost))
 
 	mux.HandleFunc("GET /api/user/{id}", jwtMiddlewareChain(userHandler.GetByIDHandler))
 
@@ -106,6 +110,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddlewareChain(commentHandler.DeleteHandler))
 	mux.HandleFunc("GET /api/post/{id}/comments", corsMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
 	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddlewareChain(commentHandler.CreateHandler))
+	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddlewareChain(reactionHandler.ReactToComment))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

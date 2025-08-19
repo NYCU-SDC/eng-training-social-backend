@@ -2,32 +2,6 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "./internal/follow/queries.sql"
-    schema: "./internal/database/full_schema.sql"
-    gen:
-      go:
-        package: "follow"
-        out: "./internal/follow"
-        sql_package: "pgx/v5"
-        overrides:
-          - db_type: "uuid"
-            go_type:
-              import: "github.com/google/uuid"
-              type: "UUID"
-  - engine: "postgresql"
-    queries: "./internal/reaction/queries.sql"
-    schema: "./internal/database/full_schema.sql"
-    gen:
-      go:
-        package: "reaction"
-        out: "./internal/reaction"
-        sql_package: "pgx/v5"
-        overrides:
-          - db_type: "uuid"
-            go_type:
-              import: "github.com/google/uuid"
-              type: "UUID"
-  - engine: "postgresql"
     queries: "./internal/comment/queries.sql"
     schema: "./internal/database/full_schema.sql"
     gen:

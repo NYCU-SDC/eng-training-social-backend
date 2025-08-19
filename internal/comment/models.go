@@ -149,6 +149,12 @@ type Following struct {
 	CreatedAt   pgtype.Timestamptz
 }
 
+type Following struct {
+	FollowerID  uuid.UUID
+	FollowingID uuid.UUID
+	CreatedAt   pgtype.Timestamptz
+}
+
 type Post struct {
 	ID         uuid.UUID
 	Title      pgtype.Text

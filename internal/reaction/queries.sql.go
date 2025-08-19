@@ -102,8 +102,44 @@ func (q *Queries) DeleteByPostIDAndUserID(ctx context.Context, arg DeleteByPostI
 	return err
 }
 
+const existsByCommentIDAndUserID = `-- name: ExistsByCommentIDAndUserID :one
+SELECT EXISTS (
+    SELECT 1 FROM reactions WHERE comment_id = $1 AND user_id = $2 AND content_type = 'COMMENT'
+) AS exists
+`
+
+type ExistsByCommentIDAndUserIDParams struct {
+	CommentID pgtype.UUID
+	UserID    uuid.UUID
+}
+
+func (q *Queries) ExistsByCommentIDAndUserID(ctx context.Context, arg ExistsByCommentIDAndUserIDParams) (bool, error) {
+	row := q.db.QueryRow(ctx, existsByCommentIDAndUserID, arg.CommentID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const existsByPostIDAndUserID = `-- name: ExistsByPostIDAndUserID :one
+SELECT EXISTS (
+    SELECT 1 FROM reactions WHERE post_id = $1 AND user_id = $2 AND content_type = 'POST'
+) AS exists
+`
+
+type ExistsByPostIDAndUserIDParams struct {
+	PostID pgtype.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ExistsByPostIDAndUserID(ctx context.Context, arg ExistsByPostIDAndUserIDParams) (bool, error) {
+	row := q.db.QueryRow(ctx, existsByPostIDAndUserID, arg.PostID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getByCommentIDAndUserID = `-- name: GetByCommentIDAndUserID :one
-SELECT id, post_id, comment_id, user_id, reaction_type, content_type, created_at, updated_at FROM reactions WHERE comment_id = $1 AND user_id = $2
+SELECT reactions.reaction_type FROM reactions WHERE comment_id = $1 AND user_id = $2
 `
 
 type GetByCommentIDAndUserIDParams struct {
@@ -111,24 +147,15 @@ type GetByCommentIDAndUserIDParams struct {
 	UserID    uuid.UUID
 }
 
-func (q *Queries) GetByCommentIDAndUserID(ctx context.Context, arg GetByCommentIDAndUserIDParams) (Reaction, error) {
+func (q *Queries) GetByCommentIDAndUserID(ctx context.Context, arg GetByCommentIDAndUserIDParams) (ReactionType, error) {
 	row := q.db.QueryRow(ctx, getByCommentIDAndUserID, arg.CommentID, arg.UserID)
-	var i Reaction
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.CommentID,
-		&i.UserID,
-		&i.ReactionType,
-		&i.ContentType,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var reaction_type ReactionType
+	err := row.Scan(&reaction_type)
+	return reaction_type, err
 }
 
 const getByPostIDAndUserID = `-- name: GetByPostIDAndUserID :one
-SELECT id, post_id, comment_id, user_id, reaction_type, content_type, created_at, updated_at FROM reactions WHERE post_id = $1 AND user_id = $2
+SELECT reactions.reaction_type FROM reactions WHERE post_id = $1 AND user_id = $2
 `
 
 type GetByPostIDAndUserIDParams struct {
@@ -136,18 +163,9 @@ type GetByPostIDAndUserIDParams struct {
 	UserID uuid.UUID
 }
 
-func (q *Queries) GetByPostIDAndUserID(ctx context.Context, arg GetByPostIDAndUserIDParams) (Reaction, error) {
+func (q *Queries) GetByPostIDAndUserID(ctx context.Context, arg GetByPostIDAndUserIDParams) (ReactionType, error) {
 	row := q.db.QueryRow(ctx, getByPostIDAndUserID, arg.PostID, arg.UserID)
-	var i Reaction
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.CommentID,
-		&i.UserID,
-		&i.ReactionType,
-		&i.ContentType,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var reaction_type ReactionType
+	err := row.Scan(&reaction_type)
+	return reaction_type, err
 }

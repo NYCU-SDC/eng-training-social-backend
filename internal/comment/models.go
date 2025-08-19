@@ -241,6 +241,17 @@ type Reaction struct {
 	UpdatedAt    pgtype.Timestamptz
 }
 
+type Reaction struct {
+	ID           uuid.UUID
+	PostID       pgtype.UUID
+	CommentID    pgtype.UUID
+	UserID       uuid.UUID
+	ReactionType ReactionType
+	ContentType  ContentType
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
 type RefreshToken struct {
 	ID             uuid.UUID
 	UserID         uuid.UUID

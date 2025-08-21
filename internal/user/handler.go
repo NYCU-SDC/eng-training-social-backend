@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/follow"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"

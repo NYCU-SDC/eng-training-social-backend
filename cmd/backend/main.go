@@ -85,18 +85,18 @@ func main() {
 	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
 	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
 
-	mux.HandleFunc("GET /api/posts", jwtMiddleware.HandlerFunc(postHandler.GetAllHandler))
+	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
 	mux.HandleFunc("POST /api/posts", jwtMiddleware.HandlerFunc(postHandler.CreateHandler))
-	mux.HandleFunc("GET /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.GetByIDHandler))
+	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
 	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.DeleteHandler))
 
 	mux.HandleFunc("GET /api/users/{id}", jwtMiddleware.HandlerFunc(userHandler.GetByIDHandler))
 
-	mux.HandleFunc("GET /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.GetByIDHandler))
+	mux.HandleFunc("GET /api/comment/{id}", commentHandler.GetByIDHandler)
 	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.DeleteHandler))
-	mux.HandleFunc("GET /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
+	mux.HandleFunc("GET /api/post/{id}/comments", commentHandler.GetAllByPostIDHandler)
 	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.CreateHandler))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -72,6 +72,7 @@ func main() {
 	// initialize handlers
 	authHandler := auth.NewHandler(logger, cfg, validator, userService, jwtService)
 	userHandler := user.NewHandler(logger, validator, userService)
+	jwtHandler := jwt.NewHandler(logger, validator, jwtService)
 	postHandler := post.NewHandler(logger, validator, postService)
 	commentHandler := comment.NewHandler(logger, validator, commentService)
 
@@ -90,6 +91,7 @@ func main() {
 	mux.HandleFunc("GET /api/login/oauth/{provider}", corsMiddleware.HandlerFunc(authHandler.Oauth2Start))
 	mux.HandleFunc("GET /api/oauth/{provider}/callback", corsMiddleware.HandlerFunc(authHandler.Callback))
 	mux.HandleFunc("GET /api/oauth/debug/token", corsMiddleware.HandlerFunc(authHandler.DebugToken))
+	mux.HandleFunc("GET /api/refreshToken/{refreshToken}", corsMiddleware.HandlerFunc(jwtHandler.RefreshToken))
 
 	mux.HandleFunc("GET /api/posts", corsMiddleware.HandlerFunc(postHandler.GetAllHandler))
 	mux.HandleFunc("POST /api/posts", jwtMiddlewareChain(postHandler.CreateHandler))

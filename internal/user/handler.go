@@ -2,9 +2,9 @@ package user
 
 import (
 	"context"
-	"errors"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal"
 	"github.com/NYCU-SDC/eng-training-social-backend/internal/follow"
+	"github.com/NYCU-SDC/eng-training-social-backend/internal/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -55,7 +55,7 @@ func (h Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := getUserFromContext(r.Context())
+	jwtUser, err := jwt.GetUserFromContext(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get user from context", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusUnauthorized, "Unauthorized")
@@ -99,7 +99,7 @@ func (h Handler) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := getUserFromContext(r.Context())
+	jwtUser, err := jwt.GetUserFromContext(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get user from context", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusUnauthorized, "Unauthorized")
@@ -135,7 +135,7 @@ func (h Handler) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := getUserFromContext(r.Context())
+	jwtUser, err := jwt.GetUserFromContext(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get user from context", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusUnauthorized, "Unauthorized")
@@ -161,12 +161,4 @@ func (h Handler) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-}
-
-func getUserFromContext(ctx context.Context) (User, error) {
-	user, ok := ctx.Value(internal.UserContextKey).(User)
-	if !ok {
-		return User{}, errors.New("user not found in context")
-	}
-	return user, nil
 }

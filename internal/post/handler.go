@@ -16,18 +16,19 @@ type Request struct {
 	Content string `json:"content" validate:"required"`
 }
 type Response struct {
-	ID        uuid.UUID `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	AuthorID  uuid.UUID `json:"authorId"`
-	CreatedAt string    `json:"createdAt"`
-	UpdatedAt string    `json:"updatedAt"`
+	ID         uuid.UUID `json:"id"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	AuthorID   uuid.UUID `json:"authorId"`
+	AuthorName string    `json:"authorName"`
+	CreatedAt  string    `json:"createdAt"`
+	UpdatedAt  string    `json:"updatedAt"`
 }
 
 type Store interface {
 	GetAll(ctx context.Context) ([]Post, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Post, error)
-	Create(ctx context.Context, title, content string, userID uuid.UUID) (Post, error)
+	Create(ctx context.Context, title, content string, userID uuid.UUID, username string) (Post, error)
 	Update(ctx context.Context, id uuid.UUID, title, content string) (Post, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -57,12 +58,13 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 	response := make([]Response, len(posts))
 	for i, post := range posts {
 		response[i] = Response{
-			ID:        post.ID,
-			Title:     post.Title.String,
-			Content:   post.Content.String,
-			AuthorID:  post.AuthorID.Bytes,
-			CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
-			UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
+			ID:         post.ID,
+			Title:      post.Title.String,
+			Content:    post.Content.String,
+			AuthorID:   post.AuthorID.Bytes,
+			AuthorName: post.AuthorName.String,
+			CreatedAt:  post.CreatedAt.Time.Format(time.RFC3339),
+			UpdatedAt:  post.UpdatedAt.Time.Format(time.RFC3339),
 		}
 	}
 
@@ -87,12 +89,13 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        post.ID,
-		Title:     post.Title.String,
-		Content:   post.Content.String,
-		AuthorID:  post.AuthorID.Bytes,
-		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         post.ID,
+		Title:      post.Title.String,
+		Content:    post.Content.String,
+		AuthorID:   post.AuthorID.Bytes,
+		AuthorName: post.AuthorName.String,
+		CreatedAt:  post.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  post.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
@@ -114,7 +117,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := h.store.Create(r.Context(), request.Title, request.Content, jwtUser.ID)
+	post, err := h.store.Create(r.Context(), request.Title, request.Content, jwtUser.ID, jwtUser.Username)
 	if err != nil {
 		h.logger.Error("Failed to create post", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to create post")
@@ -122,12 +125,13 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        post.ID,
-		Title:     post.Title.String,
-		Content:   post.Content.String,
-		AuthorID:  post.AuthorID.Bytes,
-		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         post.ID,
+		Title:      post.Title.String,
+		Content:    post.Content.String,
+		AuthorID:   post.AuthorID.Bytes,
+		AuthorName: post.AuthorName.String,
+		CreatedAt:  post.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  post.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusCreated, response)
@@ -158,12 +162,13 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        post.ID,
-		Title:     post.Title.String,
-		Content:   post.Content.String,
-		AuthorID:  post.AuthorID.Bytes,
-		CreatedAt: post.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: post.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         post.ID,
+		Title:      post.Title.String,
+		Content:    post.Content.String,
+		AuthorID:   post.AuthorID.Bytes,
+		AuthorName: post.AuthorName.String,
+		CreatedAt:  post.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  post.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)

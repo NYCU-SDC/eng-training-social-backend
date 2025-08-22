@@ -15,17 +15,18 @@ type Request struct {
 	Content string `json:"content" validate:"required"`
 }
 type Response struct {
-	ID        uuid.UUID `json:"id"`
-	Content   string    `json:"content"`
-	AuthorID  uuid.UUID `json:"authorId"`
-	CreatedAt string    `json:"createdAt"`
-	UpdatedAt string    `json:"updatedAt"`
+	ID         uuid.UUID `json:"id"`
+	Content    string    `json:"content"`
+	AuthorID   uuid.UUID `json:"authorId"`
+	AuthorName string    `json:"authorName"`
+	CreatedAt  string    `json:"createdAt"`
+	UpdatedAt  string    `json:"updatedAt"`
 }
 
 type Store interface {
 	GetAllByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Comment, error)
-	Create(ctx context.Context, content string, postID uuid.UUID, userID uuid.UUID) (Comment, error)
+	Create(ctx context.Context, content string, postID uuid.UUID, userID uuid.UUID, username string) (Comment, error)
 	Update(ctx context.Context, id uuid.UUID, content string) (Comment, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -63,11 +64,12 @@ func (h *Handler) GetAllByPostIDHandler(w http.ResponseWriter, r *http.Request) 
 	response := make([]Response, len(comments))
 	for i, comment := range comments {
 		response[i] = Response{
-			ID:        comment.ID,
-			Content:   comment.Content.String,
-			AuthorID:  comment.AuthorID.Bytes,
-			CreatedAt: comment.CreatedAt.Time.Format(time.RFC3339),
-			UpdatedAt: comment.UpdatedAt.Time.Format(time.RFC3339),
+			ID:         comment.ID,
+			Content:    comment.Content.String,
+			AuthorID:   comment.AuthorID.Bytes,
+			AuthorName: comment.AuthorName.String,
+			CreatedAt:  comment.CreatedAt.Time.Format(time.RFC3339),
+			UpdatedAt:  comment.UpdatedAt.Time.Format(time.RFC3339),
 		}
 	}
 
@@ -92,11 +94,12 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        comment.ID,
-		Content:   comment.Content.String,
-		AuthorID:  comment.AuthorID.Bytes,
-		CreatedAt: comment.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: comment.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         comment.ID,
+		Content:    comment.Content.String,
+		AuthorID:   comment.AuthorID.Bytes,
+		AuthorName: comment.AuthorName.String,
+		CreatedAt:  comment.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  comment.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
@@ -126,7 +129,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment, err := h.store.Create(r.Context(), request.Content, id, jwtUser.ID)
+	comment, err := h.store.Create(r.Context(), request.Content, id, jwtUser.ID, jwtUser.Username)
 	if err != nil {
 		h.logger.Error("Failed to create comment", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to create comment")
@@ -134,11 +137,12 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        comment.ID,
-		Content:   comment.Content.String,
-		AuthorID:  comment.AuthorID.Bytes,
-		CreatedAt: comment.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: comment.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         comment.ID,
+		Content:    comment.Content.String,
+		AuthorID:   comment.AuthorID.Bytes,
+		AuthorName: comment.AuthorName.String,
+		CreatedAt:  comment.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  comment.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusCreated, response)
@@ -169,11 +173,12 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := Response{
-		ID:        comment.ID,
-		Content:   comment.Content.String,
-		AuthorID:  comment.AuthorID.Bytes,
-		CreatedAt: comment.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt: comment.UpdatedAt.Time.Format(time.RFC3339),
+		ID:         comment.ID,
+		Content:    comment.Content.String,
+		AuthorID:   comment.AuthorID.Bytes,
+		AuthorName: comment.AuthorName.String,
+		CreatedAt:  comment.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:  comment.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)

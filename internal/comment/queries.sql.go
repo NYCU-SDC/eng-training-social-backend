@@ -13,22 +13,29 @@ import (
 )
 
 const create = `-- name: Create :one
-INSERT INTO comments (post_id, author_id, content) VALUES ($1, $2, $3) RETURNING id, post_id, author_id, content, created_at, updated_at
+INSERT INTO comments (author_id, author_name, post_id, content) VALUES ($1, $2, $3, $4) RETURNING id, post_id, author_id, author_name, content, created_at, updated_at
 `
 
 type CreateParams struct {
-	PostID   uuid.UUID
-	AuthorID pgtype.UUID
-	Content  pgtype.Text
+	AuthorID   pgtype.UUID
+	AuthorName pgtype.Text
+	PostID     uuid.UUID
+	Content    pgtype.Text
 }
 
 func (q *Queries) Create(ctx context.Context, arg CreateParams) (Comment, error) {
-	row := q.db.QueryRow(ctx, create, arg.PostID, arg.AuthorID, arg.Content)
+	row := q.db.QueryRow(ctx, create,
+		arg.AuthorID,
+		arg.AuthorName,
+		arg.PostID,
+		arg.Content,
+	)
 	var i Comment
 	err := row.Scan(
 		&i.ID,
 		&i.PostID,
 		&i.AuthorID,
+		&i.AuthorName,
 		&i.Content,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -46,7 +53,7 @@ func (q *Queries) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllByPostID = `-- name: GetAllByPostID :many
-SELECT id, post_id, author_id, content, created_at, updated_at FROM comments WHERE post_id = $1
+SELECT id, post_id, author_id, author_name, content, created_at, updated_at FROM comments WHERE post_id = $1
 `
 
 func (q *Queries) GetAllByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
@@ -62,6 +69,7 @@ func (q *Queries) GetAllByPostID(ctx context.Context, postID uuid.UUID) ([]Comme
 			&i.ID,
 			&i.PostID,
 			&i.AuthorID,
+			&i.AuthorName,
 			&i.Content,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -77,7 +85,7 @@ func (q *Queries) GetAllByPostID(ctx context.Context, postID uuid.UUID) ([]Comme
 }
 
 const getByID = `-- name: GetByID :one
-SELECT id, post_id, author_id, content, created_at, updated_at FROM comments WHERE id = $1
+SELECT id, post_id, author_id, author_name, content, created_at, updated_at FROM comments WHERE id = $1
 `
 
 func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Comment, error) {
@@ -87,6 +95,7 @@ func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Comment, error) {
 		&i.ID,
 		&i.PostID,
 		&i.AuthorID,
+		&i.AuthorName,
 		&i.Content,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -95,7 +104,7 @@ func (q *Queries) GetByID(ctx context.Context, id uuid.UUID) (Comment, error) {
 }
 
 const update = `-- name: Update :one
-UPDATE comments SET content = $1, updated_at = now() WHERE id = $2 RETURNING id, post_id, author_id, content, created_at, updated_at
+UPDATE comments SET content = $1, updated_at = now() WHERE id = $2 RETURNING id, post_id, author_id, author_name, content, created_at, updated_at
 `
 
 type UpdateParams struct {
@@ -110,6 +119,7 @@ func (q *Queries) Update(ctx context.Context, arg UpdateParams) (Comment, error)
 		&i.ID,
 		&i.PostID,
 		&i.AuthorID,
+		&i.AuthorName,
 		&i.Content,
 		&i.CreatedAt,
 		&i.UpdatedAt,

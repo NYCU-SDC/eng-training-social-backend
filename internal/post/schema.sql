@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS posts (
     title VARCHAR(200),
     content TEXT,
     author_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    author_name VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );

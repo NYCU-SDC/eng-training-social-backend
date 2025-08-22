@@ -38,11 +38,12 @@ func (s Service) GetByID(ctx context.Context, id uuid.UUID) (Comment, error) {
 	return comment, nil
 }
 
-func (s Service) Create(ctx context.Context, content string, postID, userID uuid.UUID) (Comment, error) {
+func (s Service) Create(ctx context.Context, content string, postID, userID uuid.UUID, username string) (Comment, error) {
 	comment, err := s.queries.Create(ctx, CreateParams{
-		Content:  pgtype.Text{String: content, Valid: true},
-		AuthorID: pgtype.UUID{Bytes: userID, Valid: true},
-		PostID:   postID,
+		Content:    pgtype.Text{String: content, Valid: true},
+		AuthorID:   pgtype.UUID{Bytes: userID, Valid: true},
+		AuthorName: pgtype.Text{String: username, Valid: true},
+		PostID:     postID,
 	})
 	if err != nil {
 		s.logger.Error("Failed to create comment", zap.Error(err))

@@ -38,11 +38,12 @@ func (s Service) GetByID(ctx context.Context, id uuid.UUID) (Post, error) {
 	return post, nil
 }
 
-func (s Service) Create(ctx context.Context, title, content string, userID uuid.UUID) (Post, error) {
+func (s Service) Create(ctx context.Context, title, content string, userID uuid.UUID, username string) (Post, error) {
 	post, err := s.queries.Create(ctx, CreateParams{
-		Title:    pgtype.Text{String: title, Valid: true},
-		Content:  pgtype.Text{String: content, Valid: true},
-		AuthorID: pgtype.UUID{Bytes: userID, Valid: true},
+		Title:      pgtype.Text{String: title, Valid: true},
+		Content:    pgtype.Text{String: content, Valid: true},
+		AuthorID:   pgtype.UUID{Bytes: userID, Valid: true},
+		AuthorName: pgtype.Text{String: username, Valid: true},
 	})
 	if err != nil {
 		s.logger.Error("Failed to create post", zap.Error(err))

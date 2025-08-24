@@ -11,7 +11,6 @@ import (
 	"net/http"
 )
 
-//go:generate mockery --name JWTIssuer
 type JWTIssuer interface {
 	New(ctx context.Context, user User) (string, error)
 	GetUserByRefreshToken(ctx context.Context, refreshToken uuid.UUID) (User, error)

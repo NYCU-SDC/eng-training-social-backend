@@ -85,7 +85,7 @@ func main() {
 	mux.HandleFunc("PUT /api/post/{id}", postHandler.UpdateHandler)
 	mux.HandleFunc("DELETE /api/post/{id}", postHandler.DeleteHandler)
 
-	mux.HandleFunc("GET /api/users/{id}", userHandler.GetByIDHandler)
+	mux.HandleFunc("GET /api/user/{id}", userHandler.GetByIDHandler)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

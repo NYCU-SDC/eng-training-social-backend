@@ -131,6 +131,12 @@ type Following struct {
 	CreatedAt   pgtype.Timestamptz
 }
 
+type Following struct {
+	FollowerID  uuid.UUID
+	FollowingID uuid.UUID
+	CreatedAt   pgtype.Timestamptz
+}
+
 type Post struct {
 	ID         uuid.UUID
 	Title      pgtype.Text
@@ -139,6 +145,17 @@ type Post struct {
 	AuthorName pgtype.Text
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
+}
+
+type Reaction struct {
+	ID           uuid.UUID
+	PostID       pgtype.UUID
+	CommentID    pgtype.UUID
+	UserID       uuid.UUID
+	ReactionType ReactionType
+	ContentType  ContentType
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type Reaction struct {

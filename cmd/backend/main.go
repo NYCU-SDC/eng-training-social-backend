@@ -67,7 +67,7 @@ func main() {
 
 	// initialize services
 	userService := user.NewService(logger, dbPool)
-	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, userService, dbPool)
+	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
 	postService := post.NewService(logger, dbPool)
 	commentService := comment.NewService(logger, dbPool)
 	reactionService := reaction.NewService(logger, dbPool)

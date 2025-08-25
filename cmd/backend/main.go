@@ -79,40 +79,38 @@ func main() {
 	// initialize middleware
 	corsMiddleware := cors.NewMiddleware(logger, cfg.AllowOrigins)
 	jwtMiddleware := jwt.NewMiddleware(logger, jwtService)
-	// set up middleware chain
-	jwtMiddlewareChain := func(next http.HandlerFunc) http.HandlerFunc {
-		return corsMiddleware.HandlerFunc(jwtMiddleware.HandlerFunc(next))
-	}
 
 	// initialize mux
 	mux := http.NewServeMux()
 
 	// set up routes
-	mux.HandleFunc("GET /api/login/oauth/{provider}", corsMiddleware.HandlerFunc(authHandler.Oauth2Start))
-	mux.HandleFunc("GET /api/oauth/{provider}/callback", corsMiddleware.HandlerFunc(authHandler.Callback))
-	mux.HandleFunc("GET /api/oauth/debug/token", corsMiddleware.HandlerFunc(authHandler.DebugToken))
-	mux.HandleFunc("GET /api/refreshToken/{refreshToken}", corsMiddleware.HandlerFunc(jwtHandler.RefreshToken))
+	mux.HandleFunc("GET /api/login/oauth/{provider}", authHandler.Oauth2Start)
+	mux.HandleFunc("GET /api/oauth/{provider}/callback", authHandler.Callback)
+	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
+	mux.HandleFunc("GET /api/refreshToken/{refreshToken}", jwtHandler.RefreshToken)
 
-	mux.HandleFunc("GET /api/posts", corsMiddleware.HandlerFunc(postHandler.GetAllHandler))
-	mux.HandleFunc("POST /api/posts", jwtMiddlewareChain(postHandler.CreateHandler))
-	mux.HandleFunc("GET /api/post/{id}", corsMiddleware.HandlerFunc(postHandler.GetByIDHandler))
-	mux.HandleFunc("PUT /api/post/{id}", jwtMiddlewareChain(postHandler.UpdateHandler))
-	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddlewareChain(postHandler.DeleteHandler))
+	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
+	mux.HandleFunc("POST /api/posts", jwtMiddleware.HandlerFunc(postHandler.CreateHandler))
+	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
+	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.UpdateHandler))
+	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.HandlerFunc(postHandler.DeleteHandler))
 
-	mux.HandleFunc("GET /api/user/{id}", jwtMiddlewareChain(userHandler.GetByIDHandler))
+	mux.HandleFunc("GET /api/user/{id}", jwtMiddleware.HandlerFunc(userHandler.GetByIDHandler))
 
-	mux.HandleFunc("GET /api/comment/{id}", corsMiddleware.HandlerFunc(commentHandler.GetByIDHandler))
-	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddlewareChain(commentHandler.UpdateHandler))
-	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddlewareChain(commentHandler.DeleteHandler))
-	mux.HandleFunc("GET /api/post/{id}/comments", corsMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
-	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddlewareChain(commentHandler.CreateHandler))
+	mux.HandleFunc("GET /api/comment/{id}", commentHandler.GetByIDHandler)
+	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.UpdateHandler))
+	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddleware.HandlerFunc(commentHandler.DeleteHandler))
+	mux.HandleFunc("GET /api/post/{id}/comments", commentHandler.GetAllByPostIDHandler)
+	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.CreateHandler))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	entrypoint := corsMiddleware.HandlerFunc(mux.ServeHTTP)
+
 	srv := &http.Server{
 		Addr:    cfg.Host + ":" + cfg.Port,
-		Handler: mux,
+		Handler: entrypoint,
 	}
 
 	go func() {

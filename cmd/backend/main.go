@@ -67,11 +67,7 @@ func main() {
 
 	// initialize services
 	userService := user.NewService(logger, dbPool)
-<<<<<<< HEAD
-	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, userService, dbPool)
-=======
 	jwtService := jwt.NewService(logger, cfg.Secret, time.Minute*15, time.Hour*24, dbPool)
->>>>>>> origin/week5
 	postService := post.NewService(logger, dbPool)
 	commentService := comment.NewService(logger, dbPool)
 	reactionService := reaction.NewService(logger, dbPool)
@@ -98,7 +94,6 @@ func main() {
 	mux.HandleFunc("GET /api/oauth/debug/token", authHandler.DebugToken)
 	mux.HandleFunc("GET /api/refreshToken/{refreshToken}", jwtHandler.RefreshToken)
 
-<<<<<<< HEAD
 	mux.HandleFunc("GET /api/posts", postHandler.GetAllHandler)
 	mux.HandleFunc("POST /api/posts", jwtMiddleware.HandlerFunc(postHandler.CreateHandler))
 	mux.HandleFunc("GET /api/post/{id}", postHandler.GetByIDHandler)
@@ -116,25 +111,6 @@ func main() {
 	mux.HandleFunc("GET /api/post/{id}/comments", commentHandler.GetAllByPostIDHandler)
 	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.HandlerFunc(commentHandler.CreateHandler))
 	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddleware.HandlerFunc(reactionHandler.ReactToComment))
-=======
-	mux.HandleFunc("GET /api/posts", corsMiddleware.HandlerFunc(postHandler.GetAllHandler))
-	mux.HandleFunc("POST /api/posts", jwtMiddlewareChain(postHandler.CreateHandler))
-	mux.HandleFunc("GET /api/post/{id}", corsMiddleware.HandlerFunc(postHandler.GetByIDHandler))
-	mux.HandleFunc("PUT /api/post/{id}", jwtMiddlewareChain(postHandler.UpdateHandler))
-	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddlewareChain(postHandler.DeleteHandler))
-	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddlewareChain(reactionHandler.ReactToPost))
-
-	mux.HandleFunc("GET /api/user/{id}", jwtMiddlewareChain(userHandler.GetByIDHandler))
-	mux.HandleFunc("GET /api/user/{id}/follow", jwtMiddlewareChain(userHandler.FollowHandler))
-	mux.HandleFunc("GET /api/user/{id}/unfollow", jwtMiddlewareChain(userHandler.UnfollowHandler))
-
-	mux.HandleFunc("GET /api/comment/{id}", corsMiddleware.HandlerFunc(commentHandler.GetByIDHandler))
-	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddlewareChain(commentHandler.UpdateHandler))
-	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddlewareChain(commentHandler.DeleteHandler))
-	mux.HandleFunc("GET /api/post/{id}/comments", corsMiddleware.HandlerFunc(commentHandler.GetAllByPostIDHandler))
-	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddlewareChain(commentHandler.CreateHandler))
-	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddlewareChain(reactionHandler.ReactToComment))
->>>>>>> origin/week5
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -32,12 +32,34 @@ func NewMiddleware(logger *zap.Logger, verifier Verifier) Middleware {
 	}
 }
 
-func (m Middleware) HandlerFunc(next http.HandlerFunc) http.HandlerFunc {
+func (m Middleware) StrictHandlerFunc(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
 			m.logger.Warn("Authorization header required")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		user, err := m.verifier.Parse(r.Context(), token)
+		if err != nil {
+			m.logger.Warn("Authorization header invalid", zap.Error(err))
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		m.logger.Debug("Authorization header valid")
+		r = r.WithContext(context.WithValue(r.Context(), internal.UserContextKey, user))
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (m Middleware) OptionalHandlerFunc(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			m.logger.Info("Anonymous request")
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -60,4 +82,12 @@ func GetUserFromContext(ctx context.Context) (User, error) {
 		return User{}, errors.New("user not found in context")
 	}
 	return user, nil
+}
+
+func GetUserOrNilFromContext(ctx context.Context) *User {
+	user, ok := ctx.Value(internal.UserContextKey).(User)
+	if !ok {
+		return nil
+	}
+	return &user
 }

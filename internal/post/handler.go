@@ -17,13 +17,13 @@ type Request struct {
 	Content string `json:"content" validate:"required"`
 }
 type Response struct {
-	ID         uuid.UUID `json:"id"`
-	Title      string    `json:"title"`
-	Content    string    `json:"content"`
-	AuthorID   uuid.UUID `json:"authorId"`
-	AuthorName string    `json:"authorName"`
-	CreatedAt  string    `json:"createdAt"`
-	UpdatedAt  string    `json:"updatedAt"`
+	ID         uuid.UUID         `json:"id"`
+	Title      string            `json:"title"`
+	Content    string            `json:"content"`
+	AuthorID   uuid.UUID         `json:"authorId"`
+	AuthorName string            `json:"authorName"`
+	CreatedAt  string            `json:"createdAt"`
+	UpdatedAt  string            `json:"updatedAt"`
 	ReactionMe reaction.Response `json:"reactionMe"`
 }
 
@@ -63,20 +63,20 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
-		return
-	}
+	jwtUser := jwt.GetUserOrNilFromContext(r.Context())
 
 	response := make([]Response, len(posts))
 	for i, post := range posts {
-		postReaction, err := h.reactionStore.GetByPostIDAndUserID(r.Context(), post.ID, jwtUser.ID)
-		if err != nil {
-			h.logger.Error("Failed to get reaction for post", zap.Error(err), zap.String("postID", post.ID.String()), zap.String("userID", jwtUser.ID.String()))
-			internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get post reaction")
-			return
+		var postReaction reaction.ReactionType
+		if jwtUser == nil {
+			postReaction = reaction.ReactionTypeNONE
+		} else {
+			postReaction, err = h.reactionStore.GetByPostIDAndUserID(r.Context(), post.ID, jwtUser.ID)
+			if err != nil {
+				h.logger.Error("Failed to get reaction for post", zap.Error(err), zap.String("postID", post.ID.String()), zap.String("userID", jwtUser.ID.String()))
+				internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get post reaction")
+				return
+			}
 		}
 
 		response[i] = Response{
@@ -106,12 +106,7 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
-		return
-	}
+	jwtUser := jwt.GetUserOrNilFromContext(r.Context())
 
 	post, err := h.store.GetByID(r.Context(), id)
 	if err != nil {
@@ -120,11 +115,16 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postReaction, err := h.reactionStore.GetByPostIDAndUserID(r.Context(), post.ID, jwtUser.ID)
-	if err != nil {
-		h.logger.Error("Failed to get reaction for post", zap.Error(err), zap.String("postID", post.ID.String()), zap.String("userID", jwtUser.ID.String()))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get post reaction")
-		return
+	var postReaction reaction.ReactionType
+	if jwtUser == nil {
+		postReaction = reaction.ReactionTypeNONE
+	} else {
+		postReaction, err = h.reactionStore.GetByPostIDAndUserID(r.Context(), post.ID, jwtUser.ID)
+		if err != nil {
+			h.logger.Error("Failed to get reaction for post", zap.Error(err), zap.String("postID", post.ID.String()), zap.String("userID", jwtUser.ID.String()))
+			internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get post reaction")
+			return
+		}
 	}
 
 	response := Response{

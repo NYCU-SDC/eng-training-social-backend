@@ -99,7 +99,6 @@ func (h *Handler) GetAllByPostIDHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-	return
 }
 
 func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +107,6 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("Invalid UUID", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusBadRequest, "Invalid UUID format")
-		return
 	}
 
 	jwtUser := jwt.GetUserOrNilFromContext(r.Context())

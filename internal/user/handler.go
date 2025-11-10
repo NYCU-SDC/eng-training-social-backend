@@ -88,7 +88,6 @@ func (h Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-	return
 }
 
 func (h Handler) FollowHandler(w http.ResponseWriter, r *http.Request) {

@@ -91,7 +91,12 @@ func FromFile(filePath string, config *Config) (*Config, error) {
 	if err != nil {
 		return config, err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(file)
 
 	fileConfig := Config{}
 	if err := yaml.NewDecoder(file).Decode(&fileConfig); err != nil {

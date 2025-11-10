@@ -94,7 +94,6 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-	return
 }
 
 func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +140,6 @@ func (h *Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-	return
 }
 
 func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +178,6 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusCreated, response)
-	return
 }
 
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -234,7 +231,6 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteJSONResponse(w, http.StatusOK, response)
-	return
 }
 
 func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -252,6 +248,4 @@ func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to delete post")
 		return
 	}
-
-	return
 }

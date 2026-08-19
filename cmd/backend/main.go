@@ -95,7 +95,7 @@ func main() {
 	mux.HandleFunc("GET /api/refreshToken/{refreshToken}", jwtHandler.RefreshToken)
 
 	mux.HandleFunc("GET /api/posts", jwtMiddleware.OptionalHandlerFunc(postHandler.GetAllHandler))
-	mux.HandleFunc("POST /api/posts", jwtMiddleware.StrictHandlerFunc(postHandler.CreateHandler))
+	mux.HandleFunc("POST /api/posts", jwtMiddleware.OptionalHandlerFunc(postHandler.CreateHandler))
 	mux.HandleFunc("GET /api/post/{id}", jwtMiddleware.OptionalHandlerFunc(postHandler.GetByIDHandler))
 	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.StrictHandlerFunc(postHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.StrictHandlerFunc(postHandler.DeleteHandler))

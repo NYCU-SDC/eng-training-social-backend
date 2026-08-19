@@ -28,7 +28,7 @@ type Response struct {
 type Store interface {
 	GetAllByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Comment, error)
-	Create(ctx context.Context, content string, postID uuid.UUID, userID uuid.UUID, username string) (Comment, error)
+	Create(ctx context.Context, content string, postID uuid.UUID, userID *uuid.UUID, username string) (Comment, error)
 	Update(ctx context.Context, id uuid.UUID, content string) (Comment, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -161,14 +161,16 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
-		return
+	jwtUser := jwt.GetUserOrNilFromContext(r.Context())
+
+	var authorID *uuid.UUID
+	username := "Anonymous"
+	if jwtUser != nil {
+		authorID = &jwtUser.ID
+		username = jwtUser.Username
 	}
 
-	comment, err := h.store.Create(r.Context(), request.Content, id, jwtUser.ID, jwtUser.Username)
+	comment, err := h.store.Create(r.Context(), request.Content, id, authorID, username)
 	if err != nil {
 		h.logger.Error("Failed to create comment", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to create comment")

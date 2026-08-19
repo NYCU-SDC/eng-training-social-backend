@@ -99,9 +99,9 @@ func main() {
 	mux.HandleFunc("GET /api/post/{id}", jwtMiddleware.OptionalHandlerFunc(postHandler.GetByIDHandler))
 	mux.HandleFunc("PUT /api/post/{id}", jwtMiddleware.StrictHandlerFunc(postHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/post/{id}", jwtMiddleware.StrictHandlerFunc(postHandler.DeleteHandler))
-	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddleware.StrictHandlerFunc(reactionHandler.ReactToPost))
+	mux.HandleFunc("POST /api/post/{id}/react", jwtMiddleware.OptionalHandlerFunc(reactionHandler.ReactToPost))
 
-	mux.HandleFunc("GET /api/user/{id}", jwtMiddleware.StrictHandlerFunc(userHandler.GetByIDHandler))
+	mux.HandleFunc("GET /api/user/{id}", jwtMiddleware.OptionalHandlerFunc(userHandler.GetByIDHandler))
 	mux.HandleFunc("GET /api/user/{id}/follow", jwtMiddleware.StrictHandlerFunc(userHandler.FollowHandler))
 	mux.HandleFunc("GET /api/user/{id}/unfollow", jwtMiddleware.StrictHandlerFunc(userHandler.UnfollowHandler))
 
@@ -109,8 +109,8 @@ func main() {
 	mux.HandleFunc("PUT /api/comment/{id}", jwtMiddleware.StrictHandlerFunc(commentHandler.UpdateHandler))
 	mux.HandleFunc("DELETE /api/comment/{id}", jwtMiddleware.StrictHandlerFunc(commentHandler.DeleteHandler))
 	mux.HandleFunc("GET /api/post/{id}/comments", jwtMiddleware.OptionalHandlerFunc(commentHandler.GetAllByPostIDHandler))
-	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.StrictHandlerFunc(commentHandler.CreateHandler))
-	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddleware.StrictHandlerFunc(reactionHandler.ReactToComment))
+	mux.HandleFunc("POST /api/post/{id}/comments", jwtMiddleware.OptionalHandlerFunc(commentHandler.CreateHandler))
+	mux.HandleFunc("POST /api/comment/{id}/react", jwtMiddleware.OptionalHandlerFunc(reactionHandler.ReactToComment))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

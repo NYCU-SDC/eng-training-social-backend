@@ -48,18 +48,19 @@ func (h *Handler) ReactToPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
-		return
-	}
+	u := jwt.GetUserOrNilFromContext(r.Context())
 
 	var request Request
 	err = internal.ParseAndValidateRequestBody(r.Context(), h.validator, r, &request)
 	if err != nil {
 		h.logger.Error("Failed to parse and validate request body", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if u == nil {
+		h.logger.Info("Anonymous reaction to post, skipping persistence")
+		internal.WriteJSONResponse(w, http.StatusOK, Response(request))
 		return
 	}
 
@@ -97,18 +98,19 @@ func (h *Handler) ReactToComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to get user from context")
-		return
-	}
+	u := jwt.GetUserOrNilFromContext(r.Context())
 
 	var request Request
 	err = internal.ParseAndValidateRequestBody(r.Context(), h.validator, r, &request)
 	if err != nil {
 		h.logger.Error("Failed to parse and validate request body", zap.Error(err))
 		internal.WriteJSONResponse(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if u == nil {
+		h.logger.Info("Anonymous reaction to comment, skipping persistence")
+		internal.WriteJSONResponse(w, http.StatusOK, Response(request))
 		return
 	}
 

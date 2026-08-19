@@ -55,12 +55,7 @@ func (h Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtUser, err := jwt.GetUserFromContext(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get user from context", zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
+	jwtUser := jwt.GetUserOrNilFromContext(r.Context())
 
 	user, err := h.store.GetByID(r.Context(), id)
 	if err != nil {
@@ -69,11 +64,16 @@ func (h Handler) GetByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	following, err := h.followStore.ExistsByID(r.Context(), jwtUser.ID, user.ID)
-	if err != nil {
-		h.logger.Error("Failed to check if user is following", zap.String("followerID", jwtUser.ID.String()), zap.String("followingID", user.ID.String()), zap.Error(err))
-		internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to check following status")
-		return
+	var following bool
+	if jwtUser == nil {
+		following = false
+	} else {
+		following, err = h.followStore.ExistsByID(r.Context(), jwtUser.ID, user.ID)
+		if err != nil {
+			h.logger.Error("Failed to check if user is following", zap.String("followerID", jwtUser.ID.String()), zap.String("followingID", user.ID.String()), zap.Error(err))
+			internal.WriteJSONResponse(w, http.StatusInternalServerError, "Failed to check following status")
+			return
+		}
 	}
 
 	response := Response{
